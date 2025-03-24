@@ -26,7 +26,7 @@ git init
 
 2. Добавьте сборку как Git-подмодуль:
 ```bash
-git submodule add https://github.com/Alex-Replicator/docker-php-build.git server
+git submodule add https://github.com/Alex-Replicator/server.git server
 ```
 
 3. Создайте директорию для кода проекта:
