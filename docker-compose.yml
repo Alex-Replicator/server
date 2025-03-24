@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: bin/nginx/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_nginx
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ${SRC_DIR}:/var/www/html
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - php
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  php:
+    build:
+      context: .
+      dockerfile: bin/php/8.1/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_php
+    volumes:
+      - ${SRC_DIR}:/var/www/html
+      - ./logs/php-fpm:/var/log/php-fpm
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MEMCACHED_HOST=memcached
+      - MEMCACHED_PORT=11211
+      - DEBUG=${DEBUG}
+    depends_on:
+      - mysql
+      - memcached
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  mysql:
+    build:
+      context: .
+      dockerfile: bin/mysql/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  memcached:
+    build:
+      context: .
+      dockerfile: bin/memcached/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_memcached
+    ports:
+      - "${MEMCACHED_PORT}:11211"
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:${ADMINER_VERSION}
+    container_name: ${COMPOSE_PROJECT_NAME}_adminer
+    ports:
+      - "${ADMINER_PORT}:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=mysql
+    depends_on:
+      - mysql
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    name: ${COMPOSE_PROJECT_NAME}_network
+    driver: bridge
+
+volumes:
+  mysql_data:
+    name: ${COMPOSE_PROJECT_NAME}_mysql_data 
